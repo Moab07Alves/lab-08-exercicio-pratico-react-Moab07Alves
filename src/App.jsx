@@ -1,35 +1,81 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useEffect, useState } from 'react';
+
+import EstadoSelect from './components/EstadoSelect/EstadoSelect';
+import CidadeSelect from './components/CidadeSelect/CidadeSelect';
+import CidadeInfo from './components/CidadeInfo/CidadeInfo';
+import Button from './components/Button/Button';
+import Container from './components/Container/Container';
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [estados, setEstados] = useState([]);
+  const [estadoSelecionado, setEstadoSelecionado] = useState('default');
+
+  const [cidades, setCidades] = useState([]);
+  const [cidadeSelecionada, setCidadeSelecionada] = useState('default');
+
+  const [cidadeInfo, setCidadeInfo] = useState(null);
+
+  // carregar estados
+  useEffect(() => {
+    async function carregarEstados() {
+      const response = await fetch('https://servicodados.ibge.gov.br/api/v1/localidades/estados');
+      const data = await response.json();
+      setEstados(data);
+    }
+
+    carregarEstados();
+  }, []);
+
+  // carregar cidades quando mudar estado
+  useEffect(() => {
+    if (estadoSelecionado === 'default') return;
+
+    async function carregarCidades() {
+      const response = await fetch(
+        `https://servicodados.ibge.gov.br/api/v1/localidades/estados/${estadoSelecionado}/municipios`,
+      );
+
+      const data = await response.json();
+      setCidades(data);
+      setCidadeSelecionada('default');
+      setCidadeInfo(null);
+    }
+
+    carregarCidades();
+  }, [estadoSelecionado]);
+
+  function verMais() {
+    if (cidadeSelecionada === 'default') return;
+
+    const cidade = cidades.find((c) => c.id == cidadeSelecionada);
+    setCidadeInfo(cidade);
+  }
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <Container>
+      <h1>Dados IBGE</h1>
+
+      <EstadoSelect
+        estados={estados}
+        estadoSelecionado={estadoSelecionado}
+        onChange={(e) => setEstadoSelecionado(e.target.value)}
+      />
+
+      {estadoSelecionado !== 'default' && (
+        <>
+          <CidadeSelect
+            cidades={cidades}
+            cidadeSelecionada={cidadeSelecionada}
+            onChange={(e) => setCidadeSelecionada(e.target.value)}
+          />
+
+          <Button onClick={verMais}>Ver mais</Button>
+        </>
+      )}
+
+      <CidadeInfo cidade={cidadeInfo} />
+    </Container>
+  );
 }
 
-export default App
+export default App;
